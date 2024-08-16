@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forest Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e0f7fa;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        #resources {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 2px solid #00796b;
+            background-color: #b2dfdb;
+            width: 300px;
+            text-align: center;
+        }
+        #explore-button {
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            background-color: #388e3c;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #game-container {
+            display: flex;
+            flex-wrap: wrap;
+            max-height: 400px;
+            overflow-y: scroll;
+            width: 100%;
+            border: 2px solid #00796b;
+            padding: 10px;
+            background-color: #ffffff;
+        }
+        .box {
+            border: 2px solid green;
+            padding: 20px;
+            margin: 10px;
+            text-align: center;
+            background-color: #a5d6a7;
+            min-width: 150px;
+            cursor: pointer;
+        }
+        .lake-box {
+            border-color: blue;
+            background-color: #81d4fa;
+        }
+        .plain-box {
+            border-color: brown;
+            background-color: #fff59d;
+        }
+        .mountain-box {
+            border-color: grey;
+            background-color: #b0bec5;
+        }
+        .collapsible-content {
+            display: none;
+        }
+        .collapsible-header {
+            font-weight: bold;
+            background-color: #388e3c;
+            color: white;
+            padding: 10px;
+            cursor: pointer;
+        }
+        #farms-container {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 2px solid #00796b;
+            background-color: #c8e6c9;
+            width: 300px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Forest Game</h1>
+    <div id="farms-container">
+        <h2>Farms</h2>
+        <div id="farms-list">
+            <p>No farms built yet</p>
+        </div>
+    </div>
+
+    <div id="resources">
+        <p>Trees: <span id="trees-count">0</span></p>
+        <p>Metal: <span id="metal-count">0</span></p>
+        <p>Water: <span id="water-count">0</span></p>
+        <p>Total Population: <span id="total-population-count">0</span></p>
+        <p>Homeless Population: <span id="homeless-count">0</span></p>
+        <p>Houses: <span id="houses-count">0</span></p>
+        <p>Villages: <span id="villages-count">0</span></p>
+    </div>
+    <p>Chop trees, explore, and build your world!</p>
+
+    <!-- Explore Button as a Main Element -->
+    <button id="explore-button" onclick="explore()">Explore</button>
+
+    <div id="game-container">
+        <div class="box forest-box" onclick="toggleCollapse(this)">
+            <div class="collapsible-header">Forest</div>
+            <div class="collapsible-content">
+                <button onclick="chopTrees(this)">Chop Trees</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let trees = 0;
+        let metal = 0;
+        let water = 0;
+        let totalPopulation = 0;
+        let homelessPopulation = 0;
+        let houses = 0;
+        let villages = 0;
+        let lakeUnlocked = false;
+        let mountainUnlocked = false;
+        let farms = {};
+
+        function updateResources() {
+            document.getElementById('trees-count').textContent = trees;
+            document.getElementById('metal-count').textContent = metal;
+            document.getElementById('water-count').textContent = water;
+            document.getElementById('total-population-count').textContent = totalPopulation;
+            document.getElementById('homeless-count').textContent = homelessPopulation;
+            document.getElementById('houses-count').textContent = houses;
+            document.getElementById('villages-count').textContent = villages;
+        }
+
+        function chopTrees(button) {
+            trees += 20;
+            updateResources();
+            alert(`You chopped down 20 trees! Total trees: ${trees}`);
+        }
+
+        function explore() {
+            checkUnlocks();
+            const outcome = Math.random();
+            const gameContainer = document.getElementById('game-container');
+            
+            if (outcome < 0.3) {
+                // 30% chance of finding another forest
+                const newForestBox = document.createElement('div');
+                newForestBox.className = 'box forest-box';
+                newForestBox.setAttribute('onclick', 'toggleCollapse(this)');
+                newForestBox.innerHTML = `
+                    <div class="collapsible-header">Forest</div>
+                    <div class="collapsible-content">
+                        <button onclick="chopTrees(this)">Chop Trees</button>
+                    </div>
+                `;
+                gameContainer.appendChild(newForestBox);
+            } else if (lakeUnlocked && outcome < 0.5) {
+                // 20% chance of finding a lake if unlocked
+                const newLakeBox = document.createElement('div');
+                newLakeBox.className = 'box lake-box';
+                newLakeBox.setAttribute('onclick', 'toggleCollapse(this)');
+                newLakeBox.innerHTML = `
+                    <div class="collapsible-header">Lake</div>
+                    <div class="collapsible-content">
+                        <button onclick="retrieveWater(this)">Retrieve Water</button>
+                    </div>
+                `;
+                gameContainer.appendChild(newLakeBox);
+            } else if (outcome < 0.7) {
+                // 20% chance of encountering a human
+                totalPopulation += 1;
+                homelessPopulation += 1;
+                updateResources();
+                alert('You encountered a human! They are currently homeless.');
+            } else if (outcome < 0.9) {
+                // 20% chance of finding a plain
+                const newPlainBox = document.createElement('div');
+                newPlainBox.className = 'box plain-box';
+                newPlainBox.setAttribute('onclick', 'toggleCollapse(this)');
+                newPlainBox.villageName = '';
+                newPlainBox.houses = 0;
+                newPlainBox.innerHTML = `
+                    <div class="collapsible-header">Plain</div>
+                    <div class="collapsible-content">
+                        <button onclick="buildVillage(this)">Build Village</button>
+                    </div>
+                `;
+                gameContainer.appendChild(newPlainBox);
+            } else if (mountainUnlocked && outcome < 1) {
+                // 20% chance of finding a mountain if unlocked
+                const newMountainBox = document.createElement('div');
+                newMountainBox.className = 'box mountain-box';
+                newMountainBox.setAttribute('onclick', 'toggleCollapse(this)');
+                newMountainBox.innerHTML = `
+                    <div class="collapsible-header">Mountain</div>
+                    <div class="collapsible-content">
+                        <button onclick="mineMetal(this)">Mine Metal</button>
+                    </div>
+                `;
+                gameContainer.appendChild(newMountainBox);
+            }
+        }
+
+        function buildVillage(button) {
+            const plainBox = button.closest('.plain-box');
+            if (trees >= 50) {
+                trees -= 50;
+                villages += 1;
+                plainBox.villageName = prompt("Enter the name of your village:");
+                plainBox.innerHTML = `
+                    <div class="collapsible-header">${plainBox.villageName || 'Unnamed Village'}</div>
+                    <div class="collapsible-content">
+                        <p>Houses: <span class="house-count">0</span></p>
+                        <button onclick="buildHouse(this)">Build House</button>
+                        <button onclick="buildFarm(this)">Build Farm</button>
+                    </div>
+                `;
+                updateResources();
+                alert(`You built a village named ${plainBox.villageName || 'Unnamed Village'}!`);
+            } else {
+                alert('Not enough trees to build a village! You need 50 trees.');
+            }
+        }
+
+        function buildHouse(button) {
+            if (trees >= 10 && homelessPopulation > 0) {
+                trees -= 10;
+                houses += 1;
+                homelessPopulation -= 1;
+                const villageBox = button.closest('.plain-box');
+                villageBox.houses += 1;
+                const houseCountElement = villageBox.querySelector('.house-count');
+                houseCountElement.textContent = villageBox.houses;
+                updateResources();
+                alert('You built a house and provided shelter for one person!');
+            } else if (trees < 10) {
+                alert('Not enough trees to build a house! You need 10 trees.');
+            } else if (homelessPopulation <= 0) {
+                alert('There are no homeless people to house.');
+            }
+        }
+
+        function buildFarm(button) {
+            if (trees >= 20 && water >= 10) {
+                trees -= 20;
+                water -= 10;
+
+                const villageBox = button.closest('.plain-box');
+                const villageName = villageBox.querySelector('.collapsible-header').textContent;
+
+                // Increment the number of farms for the specific village
+                if (!farms[villageName]) {
+                    farms[villageName] = 1;
+                } else {
+                    farms[villageName] += 1;
+                }
+
+                updateFarms();
+                alert(`You built a farm in ${villageName}!`);
+                updateResources();
+            } else if (trees < 20) {
+                alert('Not enough trees to build a farm! You need 20 trees.');
+            } else if (water < 10) {
+                alert('Not enough water to build a farm! You need 10 units of water.');
+            }
+        }
+
+        function updateFarms() {
+            const farmsList = document.getElementById('farms-list');
+            farmsList.innerHTML = ''; // Clear the existing list
+
+            if (Object.keys(farms).length === 0) {
+                farmsList.innerHTML = '<p>No farms built yet</p>';
+            } else {
+                for (const village in farms) {
+                    const farmElement = document.createElement('p');
+                    farmElement.textContent = `${farms[village]} ${village} farm(s)`;
+                    farmsList.appendChild(farmElement);
+                }
+            }
+        }
+
+        function retrieveWater(button) {
+            water += 10;
+            updateResources();
+            alert('You retrieved 10 units of water from the lake!');
+        }
+
+        function mineMetal(button) {
+            metal += 5;
+            updateResources();
+            alert('You mined 5 metal!');
+        }
+
+        function checkUnlocks() {
+            if (!lakeUnlocked && houses >= 3) {
+                lakeUnlocked = true;
+                alert('You unlocked the ability to find Lakes!');
+            }
+            if (!mountainUnlocked && houses >= 5) {
+                mountainUnlocked = true;
+                alert('You unlocked the ability to find Mountains!');
+            }
+        }
+
+        function toggleCollapse(box) {
+            const content = box.querySelector('.collapsible-content');
+            content.style.display = content.style.display === 'none' ? 'block' : 'none';
+        }
+    </script>
+
+</body>
+</html>
